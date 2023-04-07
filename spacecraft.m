@@ -11,7 +11,8 @@ classdef spacecraft
             'perts', [], ...
             'stopcon',[], ...
             'mass',[], ...
-            'calc_coes',0);
+            'calc_coes',0, ...
+            'drawopt',0);
 
         cb
         frame
@@ -23,6 +24,7 @@ classdef spacecraft
         stopcon
         mass
         calc_coes
+        drawopt
 
     end
 
@@ -51,7 +53,10 @@ classdef spacecraft
                     sc.coes(:,i+1) = sc.state2coes(sc.state(:,i+1));
                 end
             end
-
+            
+            if sc.drawopt == 1
+                sc.drawvideo();
+            end
 
         end
 
@@ -117,7 +122,7 @@ classdef spacecraft
             e_vec = cross(v_vec,h_vec)/sc.cb.mu - r_vec/r;
             ecc = norm(e_vec);
             k_hat = [0;0;1]; n_vec = cross(k_hat,h_vec);
-            
+
             i_e = e_vec/ecc; i_h = h_vec/h; i_p = cross(i_h,i_e);
 
             R_NP = [i_e.';i_p.';i_h.']; % from N to P
@@ -164,6 +169,60 @@ classdef spacecraft
             a_pert(3,1) = -3/2 * sc.cb.j2 *  sc.cb.mu * sc.cb.radius^2 * state(3) / r^5 * (3 - 5*state(3)^2/r^2);
             % Vallado, 5ed, p597
         end
+
+        function drawvideo(sc)
+            xx = sc.state;
+            set(0,'DefaultAxesFontName', 'Times New Roman')
+            set(0,'DefaultAxesFontSize', 12)
+
+            e = earth();
+            line_width = 2;
+            fontsize_labels = 14;
+
+
+            figure(500)
+            % Animate the motion
+            set(gcf,'PaperPositionMode','auto')
+            set(gcf, 'Color', 'w');
+            set(gcf,'Units','normalized','OuterPosition',[0 0 0.55*0.7 1*0.7]);
+
+            fileName = append('animation-',datestr(datetime('now')),'.gif');
+            fileName = strrep(fileName, ' ', '.');
+            fileName = strrep(fileName, ':', '.');
+
+            for k = 1:size(xx,2)
+                e.plotplanet([0,0,0])
+
+                hold on;
+                x1 = xx(1,k); y1 = xx(2,k); z1 = xx(3,k);
+                xtrack1 = xx(1,1:k); xtrack2 = xx(2,1:k); xtrack3 = xx(3,1:k);
+
+
+                plot3(x1, y1, z1, 'k*', 'MarkerSize', 10); % plot position
+                plot3(xtrack1,xtrack2,xtrack3);
+                hold off
+                ylabel('$y$-position','FontSize',fontsize_labels)
+                xlabel('$x$-position','FontSize',fontsize_labels)
+                zlabel('$z$-position','FontSize',fontsize_labels)
+
+                % axis([0.985, 1.015 -0.010, 0.010]);
+                axis equal
+                box on;
+                grid on
+
+                ml = 10000;
+                xlim([-ml, ml]);
+                ylim([-ml, ml]);
+                zlim([-ml, ml]);
+
+                drawnow
+                %lgd.FontSize = 7;
+                %lgd.Location = 'eastoutside';
+                exportgraphics(gcf,fileName,'Append',true); % save animation as GIF
+                F(k) = getframe(gcf); % to get the current frame
+            end
+            close(gcf)
+        end
     end
 
-end
+    end
