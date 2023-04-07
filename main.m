@@ -12,12 +12,13 @@ RAAN = deg2rad(45.00000175); AOP = deg2rad(30.0127649); TA = deg2rad(39.98711236
 coes = [a,ecc,i,RAAN,AOP,TA].'; % [a,e,i,RAAN,AOP,TA]
 % tend = 2*pi/sqrt(e.mu)*(abs(a))^(3/2);
 tend = 24*60*60 * 2;
-config_test = struct('dt',100, ...
+config_test = struct('dt',200, ...
     'tspan',[0,tend], ...
     'state',[], ...
     'coes',coes, ...
     'perts',"j2", ...
-    'calc_coes',1);
+    'calc_coes',1, ...
+    'drawopt',1);
 sc1 = spacecraft(config_test);
 state0 = sc1.state(:,1);
 
@@ -34,6 +35,7 @@ grid on
 figure(2)
 t = linspace(0,24*60*60 * 2,size(sc1.state,2));
 titles = ["a","e","i","\Omega","\omega","\theta"];
+ylabels = ["km","e","degrees, \circ","degrees, \circ","degrees, \circ","degrees, \circ"];
 for k = 1:size(sc1.coes,1)
     subplot(3,2,k)
     if ismember(k,[3,4,5,6])
@@ -41,14 +43,7 @@ for k = 1:size(sc1.coes,1)
     else
         plot(t,sc1.coes(k,:))
     end
+    ylabel(ylabels(k))
     title(titles(k))
     grid on
 end
-
-
-
-
-
-
-
-
