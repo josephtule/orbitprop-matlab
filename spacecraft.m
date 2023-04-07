@@ -23,18 +23,28 @@ classdef spacecraft
         mass
 
     end
-    properties (Access = private)
 
-    end
 
     methods 
         function sc = spacecraft(config)
+
             fn = fieldnames(config);
             for k = 1:numel(fn)
-                sc.(fn{k}) = config.(fn{k});
+                sc.config.(fn{k}) = config.(fn{k});
+            end
+            pn = fieldnames(sc.config);
+            for k = 1:numel(pn)
+                sc.(pn{k}) = sc.config.(pn{k});
             end
             
-            sc.cb.mu = 1;
+            % if isempty(state)
+            %     sc = sc.coes2state();
+            % end
+
+
+
+            sc = sc.centralbody();
+            sc = sc.proporbit();
         end
 
         function state_dot = eoms(sc,state)
@@ -46,24 +56,34 @@ classdef spacecraft
 %             end
             state_dot(:,1) = [v;a];
         end
+
         function sc = proporbit(sc)
+
             N = ceil((sc.tspan(2) - sc.tspan(1))/sc.dt);
     
             for i = 1:N
-                k1 = sc.dt*sc.eoms(sc.state(:,i));
-                k2 = sc.dt*sc.eoms(sc.state(:,i)+k1/2);
-                k3 = sc.dt*sc.eoms(sc.state(:,i)+k2/2);
-                k4 = sc.dt*sc.eoms(sc.state(:,i)+k3);
+                k1 = sc.dt * sc.eoms(sc.state(:,i));
+                k2 = sc.dt * sc.eoms(sc.state(:,i)+k1/2);
+                k3 = sc.dt * sc.eoms(sc.state(:,i)+k2/2);
+                k4 = sc.dt * sc.eoms(sc.state(:,i)+k3);
                 sc.state(:,i+1) = sc.state(:,i) + 1/6 * (k1 + 2*k2 + 2*k3 + k4);
             end
         end
-
-
         
-        function cb = centralbody(sc)
-            cb.name = sc.cb;
-            cb.mu = 4;
+        function sc = centralbody(sc)
+            switch sc.cb
+                case 'earth'
+                    sc.cb = earth();
+                otherwise
+                    sc.cb = earth();
+            end
         end
+
+        function sc = coes2state(sc)
+            
+        
+        end
+
     end
 
 end
