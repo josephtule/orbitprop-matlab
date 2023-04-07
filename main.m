@@ -1,4 +1,6 @@
 clear all; close all;
+
+addpath("planets")
 e = earth();
 % Hyperbolic Orbit with Inclination Example
 % rp = e.radius+500;
@@ -13,44 +15,15 @@ coes = [a,ecc,i,RAAN,AOP,TA].'; % [a,e,i,RAAN,AOP,TA]
 
 
 % tend = 2*pi/sqrt(e.mu)*(abs(a))^(3/2); % period time
-tend = 24*60*60 * 2;
+tend = 24*60*60 * 2; % 2 days
 config_test = struct('dt',200, ...
     'tspan',[0,tend], ...
     'state',[], ...
     'coes',coes, ...
-    'perts',"j2", ...
+    'perts',["j2","aero"], ...
     'calc_coes',1, ...
-    'drawopt',1);
-sc1 = spacecraft(config_test); % cool stuff done here
-
-% plot orbit
-figure(1)
-state0 = sc1.state(:,1);
-plot3(sc1.state(1,:),sc1.state(2,:),sc1.state(3,:))
-hold on
-plot3(state0(1),state0(2),state0(3),"*")
-quiver3(state0(1),state0(2),state0(3),state0(4)*1000,state0(5)*1000,state0(6)*1000)
-e.plotplanet([0,0,0])
-axis equal
-xlabel('x'),ylabel('y'),zlabel('z')
-grid on
-
-% plot classical orbital elements vs time since start
-figure(2)
-t = linspace(0,24*60*60 * 2,size(sc1.state,2));
-titles = ["a","e","i","\Omega","\omega","\theta"];
-ylabels = ["km","e","degrees, \circ","degrees, \circ","degrees, \circ","degrees, \circ"];
-for k = 1:size(sc1.coes,1)
-    subplot(3,2,k)
-    if ismember(k,[3,4,5,6])
-        plot(t,rad2deg(sc1.coes(k,:)))
-    else
-        plot(t,sc1.coes(k,:))
-    end
-    ylabel(ylabels(k))
-    title(titles(k))
-    grid on
-end
-
-
-
+    'animateopt',0, ...
+    'frameskip',10, ...
+    'solver','rk45');
+specs_test = struct();
+sc1 = spacecraft(config_test,specs_test); % cool stuff done here
