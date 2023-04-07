@@ -81,7 +81,7 @@ classdef spacecraft
             if sc.plot3dopt == 1
                 sc.plot3d();
             end
-           
+
             if sc.plotcoesopt == 1
                 sc.plotcoes();
             end
@@ -114,7 +114,7 @@ classdef spacecraft
         function sc = proporbit(sc)
 
             N = ceil((sc.tspan(2) - sc.tspan(1))/sc.dt);
-            
+
             for i = 1:N
                 switch sc.solver
                     case 'rk4'
@@ -226,7 +226,7 @@ classdef spacecraft
 
         function sc = proptime(sc,date,i)
             sc.date(:,i+1) = date + sc.dt*[0;0;0;0;0;1];
-            
+
             if sc.date(6,i+1) >= 60
                 incnum = floor(sc.date(6,i+1)/60);
                 sc.date(6,i+1) = mod(sc.date(6,i+1),60);
@@ -254,7 +254,7 @@ classdef spacecraft
             elseif ismember(sc.date(2,i+1),[4 6 9 11])
                 maxdays = 30;
             end
-            
+
             if sc.date(3,i+1) > maxdays
                 incnum = floor(sc.date(3,i+1)/maxdays);
                 sc.date(3,i+1) = mod(sc.date(3,i+1),maxdays);
@@ -278,21 +278,38 @@ classdef spacecraft
 
         function a_pert = aeropert(sc,state)
             alt = norm(state(1:3));
-%             rho = atmos_density(alt);
-            rho = 1;
+            rho = sc.atmos_density(alt);
             atm_rot = [1;1;1];
             v_rel = state(4:6) - cross(atm_rot,state(1:3));
             a_pert = -v_rel*.5*rho*norm(v_rel)*sc.specs.Cd*sc.specs.area/sc.specs.mass;
-    
+
         end
 
-        function atmos_density(sc,alt)
+        function rho = atmos_density(sc,alt)
+            [rhos,alts] = find_rhos_alts(sc,alt);
+
+            if rhos(1) == 0
+                rho = 0;
+            else
+                Hi = -(alts(2)-alts(1))/log(rhos(2)/rhos(1));
+                rho = rhos(1)*exp(-(alt-alts(1))/Hi);
+            end
         end
 
-        function find_rho(sc,alt)
+        function [rhos,alts] = find_rhos_alts(sc,alt)
+            alts = sc.cb.rhos(1,:); rhos = sc.cb.rhos(2,:);
+            n = length(rhos);
+            if alt > 1000 || alt < 1
+                rhos = [0,0]; alts = [0,0];
+            else
+                for n = 1:n
+                    if alt > alts(n) && alt < alts(n+1)
+                        rhos = [rhos(n),rhos(n+1)];
+                        alts = [alts(n),alts(n+1)];
+                    end
+                end
+            end
         end
-
-    
 
         function drawvideo(sc)
             xx = sc.state;
@@ -328,6 +345,12 @@ classdef spacecraft
                 ylabel('y-position','FontSize',fontsize_labels)
                 xlabel('x-position','FontSize',fontsize_labels)
                 zlabel('z-position','FontSize',fontsize_labels)
+
+                annstr = sprintf("Year: %.0f\nMonth: %.0f\nDay: %.0f\nTime: %.0f:%.0f:%.1f",sc.date(1,k),sc.date(2,k),sc.date(3,k),sc.date(4,k),sc.date(5,k),sc.date(6,k)); % annotation text
+                annpos = [0.025 0.025 0.2 0.085]; % annotation position in figure coordinates
+                ha = annotation('textbox',annpos,'string',annstr);
+                ha.HorizontalAlignment = 'center';
+                ha.BackgroundColor = [1,1,1]; % make the box opaque with some color
 
                 % axis([0.985, 1.015 -0.010, 0.010]);
                 axis equal
