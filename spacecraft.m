@@ -18,7 +18,8 @@ classdef spacecraft
             'plot3dopt',1, ...
             'plotcoesopt',1, ...
             'mission','orbit', ... % mission: orbit, launch, missile
-            'date', [2018 1 17 16 20 36].' ...
+            'date', [2018 1 17 16 20 36].', ...
+            'progressbar',0 ...
             );
 
         cb
@@ -39,6 +40,7 @@ classdef spacecraft
         missilemode
         mission
         date
+        progressbar
         specs = struct( ...
             'Cd',2.2, ...
             'area',(1e-3)^2/4, ...
@@ -92,39 +94,53 @@ classdef spacecraft
 
         end
 
-        function state_dot = eoms(sc,state)
+        function dxdt = eoms(sc,state)
             r(1:3,1) = state(1:3);
             v(1:3,1) = state(4:6);
             a(1:3,1) = -r * sc.cb.mu / norm(r)^3;
-            a_pert = zeros(3,1);
-            for i = 1:length(sc.perts)
-                switch sc.perts(i)
-                    case "j2"
-                        a_pert = a_pert + sc.j2pert(state);
-                    case "srp"
-                    case "thirdbody"
-                    case "aero"
-                        a_pert = a_pert + sc.aeropert(state);
-                end
-            end
-            a = a + a_pert;
-            state_dot(:,1) = [v;a];
+            % a_pert = zeros(3,1);
+            % for i = 1:length(sc.perts)
+            %     switch sc.perts(i)
+            %         case "j2"
+            %             a_pert = a_pert + sc.j2pert(state);
+            %         case "srp"
+            %         case "thirdbody"
+            %         case "aero"
+            %             a_pert = a_pert + sc.aeropert(state);
+            %     end
+            % end
+            % a = a + a_pert;
+            dxdt(:,1) = [v;a];
         end
 
         function sc = proporbit(sc)
 
             N = ceil((sc.tspan(2) - sc.tspan(1))/sc.dt);
-
+            if sc.progressbar == 1
+                f = waitbar(0,"Please Wait");
+            end
             for i = 1:N
+                if sc.progressbar == 1
+                    waitbar(i/N,f,'Propagating Orbit');
+                end
+                
                 switch sc.solver
                     case 'rk4'
                         sc = rk4(sc,i);
                     case 'rk45'
                         sc = rk45(sc,i);
+                    case 'euler'
+                        sc = euler(sc,i);
                 end
                 sc = proptime(sc,sc.date(:,i),i);
             end
+            if sc.progressbar == 1
+                close(f)
+            end
+        end
 
+        function sc = euler(sc,i)
+            sc.state(:,i+1) = sc.state(:,i) + sc.dt * sc.eoms(sc.state(:,i));
         end
 
         function sc = rk4(sc,i)
@@ -267,7 +283,7 @@ classdef spacecraft
                 sc.date(1,i+1) = sc.date(1,i+1) + incnum;
             end
         end
-
+        
         function a_pert = j2pert(sc,state)
             r = norm(state(1:3));
             a_pert(1,1) = -3/2 * sc.cb.j2 *  sc.cb.mu * sc.cb.radius^2 * state(1) / r^5 * (1 - 5*state(3)^2/r^2);
